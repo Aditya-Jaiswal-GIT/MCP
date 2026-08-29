@@ -307,5 +307,120 @@ For issues, questions, or suggestions, please open an issue on the GitHub reposi
 
 ---
 
+## MCP Integration Guide
+
+### Setting Up the Expense Tracker as an MCP Server
+
+The Remote Expense Tracker can be integrated into Claude Desktop or other MCP-compatible clients. Follow these steps to enable seamless expense tracking within your AI workflow.
+
+### Option 1: Local Development Setup (Recommended for Testing)
+
+1. **Start the MCP Server**
+   ```bash
+   python main.py
+   ```
+   The server will output connection details to your terminal.
+
+2. **Configure Claude Desktop**
+   - Open Claude Desktop settings (⚙️ icon)
+   - Navigate to "Developer" → "MCP Settings"
+   - Add this configuration to your `claude_desktop_config.json`:
+   ```json
+   {
+     "mcpServers": {
+       "expense-tracker": {
+         "command": "python",
+         "args": ["path/to/main.py"]
+       }
+     }
+   }
+   ```
+   Replace `path/to/main.py` with the absolute path to your main.py file.
+
+3. **Restart Claude Desktop** for changes to take effect.
+
+### Option 2: Remote Server Setup
+
+To use a deployed MCP server (e.g., hosted on Render or similar):
+
+1. **Update Your MCP Configuration**
+   ```json
+   {
+     "mcpServers": {
+       "mcp-expense": {
+         "transport": "streamable_http",
+         "url": "https://your-deployed-server.onrender.com/mcp"
+       }
+     }
+   }
+   ```
+
+2. **Transport Protocol Options**
+   - `streamable_http` - Primary protocol, reliable for most deployments
+   - `sse` - Server-Sent Events, fallback option if HTTP streaming fails
+   - Use `sse` if you encounter timeout or connection issues
+
+3. **Example Configuration** (when deployed to Render)
+   ```json
+   {
+     "mcp-expense": {
+       "transport": "streamable_http",
+       "url": "https://expense-tracker-st6p.onrender.com/mcp"
+     }
+   }
+   ```
+
+### Option 3: Using with Claude API (via Gateway)
+
+For programmatic access through Claude's API:
+
+```python
+from anthropic import Anthropic
+
+client = Anthropic()
+
+response = client.messages.create(
+    model="claude-3-5-sonnet-20241022",
+    max_tokens=1024,
+    tools=[
+        # MCP tools will be available here
+    ],
+    messages=[
+        {
+            "role": "user",
+            "content": "Add an expense for $50 on groceries today"
+        }
+    ]
+)
+```
+
+### Testing the Integration
+
+Once configured, test with a simple prompt in Claude:
+
+```
+Please add an expense of $45.50 for lunch on 2024-08-29 in the food/dining_out category.
+```
+
+Claude should execute the `add_expense` tool and confirm the expense was added.
+
+### Troubleshooting MCP Connection
+
+| Issue | Solution |
+|-------|----------|
+| **"Tool not found" error** | Restart Claude Desktop after updating config, ensure server is running |
+| **Connection timeout** | Try switching transport from `streamable_http` to `sse` |
+| **"Permission denied"** | Check file permissions on main.py and the database directory |
+| **Database locked error** | Ensure only one server instance is running |
+| **SSL certificate errors** | For remote servers, ensure proper HTTPS configuration |
+
+### Next Steps
+
+- [Claude MCP Documentation](https://modelcontextprotocol.io)
+- [Model Context Protocol Specification](https://spec.modelcontextprotocol.io)
+- Explore advanced configurations for production deployments
+
+---
+
 **Last Updated:** August 2024
 **Status:** Active Development
